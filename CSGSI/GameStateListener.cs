@@ -21,7 +21,7 @@ namespace CSGSI
     /// </summary>
     public class GameStateListener : IGameStateListener
     {
-        private AutoResetEvent _waitForConnection = new AutoResetEvent(false);
+        private readonly AutoResetEvent _waitForConnection = new AutoResetEvent(false);
         private GameState _currentGameState;
         private HttpListener _listener;
 
@@ -30,30 +30,34 @@ namespace CSGSI
         /// </summary>
         public GameState CurrentGameState
         {
-            get
-            {
-                return _currentGameState;
-            }
+            get => _currentGameState;
             private set
             {
                 if (_currentGameState == value)
+                {
                     return;
+                }
+
                 _currentGameState = value;
+
                 RaiseEvent(NewGameState, _currentGameState);
+
                 if (EnableRaisingIntricateEvents)
+                {
                     ProcessGameState(_currentGameState);
+                }
             }
         }
 
         /// <summary>
         /// Gets the port that this GameStateListener instance is listening to.
         /// </summary>
-        public int Port { get; private set; }
+        public int Port { get; }
 
         /// <summary>
         /// Gets a value indicating if the listening process is running.
         /// </summary>
-        public bool Running { get; private set; } = false;
+        public bool Running { get; private set; }
 
         /// <summary>
         /// Is raised after a new GameState has been received.
@@ -64,30 +68,34 @@ namespace CSGSI
         /// A GameStateListener that listens for connections to http://localhost:&lt;Port&gt;/.
         /// </summary>
         /// <param name="Port"></param>
-        public GameStateListener(int Port)
+        public GameStateListener(int port)
         {
-            this.Port = Port;
+            Port = port;
         }
 
         /// <summary>
         /// A GameStateListener that listens for connections to the specified URI.
         /// </summary>
         /// <param name="URI">The URI to listen to</param>
-        public GameStateListener(string URI)
+        public GameStateListener(string uri)
         {
-            if (!URI.EndsWith("/"))
-                URI += "/";
-
-            Regex URIPattern = new Regex("^https?:\\/\\/.+:([0-9]*)\\/$", RegexOptions.IgnoreCase);
-            Match PortMatch = URIPattern.Match(URI);
-            if (!PortMatch.Success)
+            if (!uri.EndsWith("/"))
             {
-                throw new ArgumentException("Not a valid URI: " + URI);
+                uri += "/";
             }
-            Port = Convert.ToInt32(PortMatch.Groups[1].Value);
+
+            var uriPattern = new Regex("^https?:\\/\\/.+:([0-9]*)\\/$", RegexOptions.IgnoreCase);
+            var portMatch = uriPattern.Match(uri);
+
+            if (!portMatch.Success)
+            {
+                throw new ArgumentException("Not a valid URI: " + uri);
+            }
+
+            Port = Convert.ToInt32(portMatch.Groups[1].Value);
 
             _listener = new HttpListener();
-            _listener.Prefixes.Add(URI);
+            _listener.Prefixes.Add(uri);
         }
 
         /// <summary>
@@ -97,11 +105,15 @@ namespace CSGSI
         public bool Start()
         {
             if (Running)
+            {
                 return false;
+            }
 
             _listener = new HttpListener();
             _listener.Prefixes.Add("http://localhost:" + Port + "/");
-            Thread ListenerThread = new Thread(new ThreadStart(Run));
+
+            var listenerThread = new Thread(Run);
+
             try
             {
                 _listener.Start();
@@ -110,8 +122,10 @@ namespace CSGSI
             {
                 return false;
             }
+
             Running = true;
-            ListenerThread.Start();
+            listenerThread.Start();
+
             return true;
         }
 
@@ -133,6 +147,7 @@ namespace CSGSI
                 _waitForConnection.WaitOne();
                 _waitForConnection.Reset();
             }
+
             try
             {
                 _listener.Stop();
@@ -144,6 +159,7 @@ namespace CSGSI
         private void ReceiveGameState(IAsyncResult result)
         {
             HttpListenerContext context;
+
             try
             {
                 context = _listener.EndGetContext(result);
@@ -158,23 +174,23 @@ namespace CSGSI
                 _waitForConnection.Set();
             }
 
-            HttpListenerRequest request = context.Request;
-            string JSON;
+            var request = context.Request;
+            string json;
 
-            using (Stream inputStream = request.InputStream)
+            using (var inputStream = request.InputStream)
+            using (var sr = new StreamReader(inputStream))
             {
-                using (StreamReader sr = new StreamReader(inputStream))
-                {
-                    JSON = sr.ReadToEnd();
-                }
+                json = sr.ReadToEnd();
             }
-            using (HttpListenerResponse response = context.Response)
+
+            using (var response = context.Response)
             {
                 response.StatusCode = (int)HttpStatusCode.OK;
                 response.StatusDescription = "OK";
                 response.Close();
             }
-            CurrentGameState = new GameState(JSON);
+
+            CurrentGameState = new GameState(json);
         }
 
         #region Intricate Events
@@ -191,7 +207,9 @@ namespace CSGSI
         private void ProcessGameState(GameState gs)
         {
             if (!EnableRaisingIntricateEvents)
+            {
                 return;
+            }
             
             if (RoundPhaseChanged != null)
             {
@@ -207,7 +225,8 @@ namespace CSGSI
             {
                 foreach (var previousPlayer in gs.Previously.AllPlayers)
                 {
-                    var currentPlayer = gs.AllPlayers.GetBySteamID(previousPlayer.SteamID);
+                    var currentPlayer = gs.AllPlayers.GetBySteamId(previousPlayer.SteamID);
+
                     if (previousPlayer.State.Flashed == 0 &&
                        previousPlayer.State.Flashed < currentPlayer.State.Flashed)
                     {
@@ -218,12 +237,17 @@ namespace CSGSI
 
             if (BombPlanted != null)
             {
-                var planter = gs.Previously.AllPlayers.PlayerList.SingleOrDefault(player => player.Weapons.WeaponList.Any(weapon => weapon.Type == WeaponType.C4));
+                var planter = gs
+                    .Previously
+                    .AllPlayers
+                    .PlayerList
+                    .SingleOrDefault(player => player.Weapons.WeaponList.Any(weapon => weapon.Type == WeaponType.C4));
+                
                 if (planter != null &&
                    gs.Previously.Bomb.State == BombState.Planting &&
                    gs.Bomb.State == BombState.Planted)
                 {
-                    RaiseEvent(BombPlanted, new BombPlantedEventArgs(gs.AllPlayers.GetBySteamID(planter.SteamID)));
+                    RaiseEvent(BombPlanted, new BombPlantedEventArgs(gs.AllPlayers.GetBySteamId(planter.SteamID)));
                 }
             }
 
@@ -231,9 +255,12 @@ namespace CSGSI
             {
                 if (gs.Previously.Bomb.State == BombState.Planted && gs.Bomb.State == BombState.Defused)
                 {
-                    var defuser = gs.AllPlayers.PlayerList.SingleOrDefault(player => gs.AllPlayers.GetBySteamID(player.SteamID).MatchStats.Score > player.MatchStats.Score);
-                    if (defuser == null)
-                        defuser = new PlayerNode("");
+                    var defuser = 
+                        gs
+                            .AllPlayers
+                            .PlayerList
+                            .SingleOrDefault(player => gs.AllPlayers.GetBySteamId(player.SteamID).MatchStats.Score > player.MatchStats.Score) 
+                            ?? new PlayerNode("");
 
                     RaiseEvent(BombDefused, new BombDefusedEventArgs(defuser));
                 }
@@ -299,13 +326,13 @@ namespace CSGSI
         /// </summary>
         public event RoundBeginHandler RoundBegin;
 
-        private void RaiseEvent(MulticastDelegate handler, object data)
+        private static void RaiseEvent(MulticastDelegate handler, object data)
         {
-            foreach (Delegate d in handler.GetInvocationList())
+            foreach (var d in handler.GetInvocationList())
             {
-                if (d.Target is ISynchronizeInvoke)
+                if (d.Target is ISynchronizeInvoke invoke)
                 {
-                    (d.Target as ISynchronizeInvoke).BeginInvoke(d, new object[] { data });
+                    invoke.BeginInvoke(d, new[] { data });
                 }
                 else
                 {
@@ -314,13 +341,13 @@ namespace CSGSI
             }
         }
 
-        private void RaiseEvent(MulticastDelegate handler)
+        private static void RaiseEvent(MulticastDelegate handler)
         {
-            foreach (Delegate d in handler.GetInvocationList())
+            foreach (var d in handler.GetInvocationList())
             {
-                if (d.Target is ISynchronizeInvoke)
+                if (d.Target is ISynchronizeInvoke invoke)
                 {
-                    (d.Target as ISynchronizeInvoke).BeginInvoke(d, null);
+                    invoke.BeginInvoke(d, null);
                 }
                 else
                 {

@@ -32,11 +32,9 @@ namespace CSGSI.Nodes
         /// <returns></returns>
         public PlayerNode GetByName(string name)
         {
-            PlayerNode pn = Players.Find(x => x.Name == name);
-            if (pn != null)
-                return pn;
+            var pn = Players.Find(x => x.Name == name);
 
-            return new PlayerNode("");
+            return pn ?? new PlayerNode("");
         }
 
         /// <summary>
@@ -44,25 +42,27 @@ namespace CSGSI.Nodes
         /// </summary>
         /// <param name="steamId">The Steam-ID to search by.</param>
         /// <returns></returns>
-        public PlayerNode GetBySteamID(string steamId)
+        public PlayerNode GetBySteamId(string steamId)
         {
-            PlayerNode pn = Players.Find(x => x.SteamID == steamId);
-            if (pn != null)
-                return pn;
+            var pn = Players.Find(x => x.SteamID == steamId);
 
-            return new PlayerNode("");
+            return pn ?? new PlayerNode("");
         }
 
         internal AllPlayersNode(string json)
             : base(json)
         {
-            foreach (JToken jt in _data.Children())
+            foreach (var jt in _data.Children())
             {
-                PlayerNode pn = new PlayerNode(jt.First.ToString())
+                if (jt.First != null)
                 {
-                    SteamID = jt.Value<JProperty>()?.Name ?? ""
-                };
-                Players.Add(pn);
+                    var pn = new PlayerNode(jt.First.ToString())
+                    {
+                        SteamID = jt.Value<JProperty>()?.Name ?? ""
+                    };
+
+                    Players.Add(pn);
+                }
             }
         }
 
@@ -71,18 +71,7 @@ namespace CSGSI.Nodes
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        public PlayerNode this[int index]
-        {
-            get
-            {
-                if (index > Players.Count - 1)
-                {
-                    return new PlayerNode("");
-                }
-
-                return Players[index];
-            }
-        }
+        public PlayerNode this[int index] => index > Players.Count - 1 ? new PlayerNode("") : Players[index];
 
         /// <summary>
         /// Gets all players that are on the specified team.

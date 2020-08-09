@@ -1,5 +1,5 @@
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CSGSI.Nodes
 {
@@ -30,10 +30,9 @@ namespace CSGSI.Nodes
         {
             get
             {
-                foreach (WeaponNode weapon in Weapons)
+                foreach (var weapon in Weapons.Where(weapon => weapon.State == WeaponState.Active || weapon.State == WeaponState.Reloading))
                 {
-                    if (weapon.State == WeaponState.Active || weapon.State == WeaponState.Reloading)
-                        return weapon;
+                    return weapon;
                 }
 
                 return new WeaponNode("");
@@ -43,9 +42,12 @@ namespace CSGSI.Nodes
         internal WeaponsNode(string json)
             : base(json)
         {
-            foreach (JToken weapon in _data.Children())
+            foreach (var weapon in _data.Children())
             {
-                Weapons.Add(new WeaponNode(weapon.First.ToString()));
+                if (weapon.First != null)
+                {
+                    Weapons.Add(new WeaponNode(weapon.First.ToString()));
+                }
             }
         }
 
@@ -54,17 +56,6 @@ namespace CSGSI.Nodes
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        public WeaponNode this[int index]
-        {
-            get
-            {
-                if (index > Weapons.Count - 1)
-                {
-                    return new WeaponNode("");
-                }
-
-                return Weapons[index];
-            }
-        }
+        public WeaponNode this[int index] => index > Weapons.Count - 1 ? new WeaponNode("") : Weapons[index];
     }
 }

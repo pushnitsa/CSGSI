@@ -21,8 +21,8 @@ namespace CSGSI.Nodes
         public MapRoundWinsNode(string json)
             : base(json)
         {
-            int children = _data.Children().Count();
-            for (int i = 1; i <= children; i++)
+            var children = _data.Children().Count();
+            for (var i = 1; i <= children; i++)
             {
                 RoundWinReasons.Add(GetEnum<RoundWinReason>(i.ToString()));
             }

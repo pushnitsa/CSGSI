@@ -17,12 +17,12 @@ namespace CSGSI.Nodes
         /// <summary>
         /// The raw JSON string that was used to construct this node.
         /// </summary>
-        public string JSON { get; private set; }
+        public string Json { get; }
 
         /// <summary>
         /// Whether or not this node contains data (i.e. JSON string is not empty)
         /// </summary>
-        public bool HasData => !string.IsNullOrWhiteSpace(JSON);
+        public bool HasData => !string.IsNullOrWhiteSpace(Json);
 
         internal NodeBase(string json)
         {
@@ -33,7 +33,7 @@ namespace CSGSI.Nodes
                 json = "{}";
             }
             _data = JObject.Parse(json);
-            JSON = json;
+            Json = json;
         }
 
         internal string GetString(string name)
@@ -47,12 +47,14 @@ namespace CSGSI.Nodes
             {
                 return result;
             }
+
             return -1;
         }
 
         internal T GetEnum<T>(string name)
         {
-            string value = (_data[name]?.ToString().Replace(" ", String.Empty).Replace("_", string.Empty) ?? "Undefined");
+            var value = (_data[name]?.ToString().Replace(" ", string.Empty).Replace("_", string.Empty) ?? "Undefined");
+
             return (T)Enum.Parse(typeof(T), value, true);
         }
 
@@ -73,7 +75,7 @@ namespace CSGSI.Nodes
 
         internal float GetFloat(string name)
         {
-            if (float.TryParse(_data[name]?.ToString() ?? "-1", NumberStyles.Any, CultureInfo.InvariantCulture, out float value))
+            if (float.TryParse(_data[name]?.ToString() ?? "-1", NumberStyles.Any, CultureInfo.InvariantCulture, out var value))
             {
                 return value;
             }

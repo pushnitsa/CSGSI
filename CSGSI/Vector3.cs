@@ -35,9 +35,9 @@ namespace CSGSI
         /// <param name="z"></param>
         public Vector3(double x, double y, double z)
         {
-            this.X = x;
-            this.Y = y;
-            this.Z = z;
+            X = x;
+            Y = y;
+            Z = z;
         }
 
         /// <summary>
@@ -47,18 +47,21 @@ namespace CSGSI
         /// <returns>A new <see cref="Vector3"/> with the given component values.</returns>
         public static Vector3 FromComponentString(string components)
         {
-            string[] xyz = components.Split(',');
-            if (xyz.Length != 3)
-                return Vector3.Empty;
+            var xyz = components.Split(',');
 
-            if (double.TryParse(xyz[0].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double x) &&
-               double.TryParse(xyz[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double y) &&
-               double.TryParse(xyz[2].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double z))
+            if (xyz.Length != 3)
+            {
+                return Empty;
+            }
+
+            if (double.TryParse(xyz[0].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var x) &&
+               double.TryParse(xyz[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var y) &&
+               double.TryParse(xyz[2].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var z))
             {
                 return new Vector3(x, y, z);
             }
 
-            return Vector3.Empty;
+            return Empty;
         }
 
         /// <summary>

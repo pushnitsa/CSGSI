@@ -40,8 +40,8 @@ namespace CSGSI.Nodes
         /// </summary>
         public WeaponState State { get; set; }
 
-        internal WeaponNode(string JSON)
-            : base(JSON)
+        internal WeaponNode(string Json)
+            : base(Json)
         {
             Name = GetString("name");
             Paintkit = GetString("paintkit");

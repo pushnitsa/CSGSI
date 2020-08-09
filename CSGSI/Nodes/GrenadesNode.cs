@@ -23,8 +23,7 @@ namespace CSGSI.Nodes
         {
             foreach (var c in _data.Properties())
             {
-                int id = -1;
-                int.TryParse(c.Name, out id);
+                int.TryParse(c.Name, out var id);
                 Grenades.Add(new GrenadeNode(c.Value.ToString(), id));
             }
         }
